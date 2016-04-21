@@ -1,17 +1,18 @@
 (ns wikipedia-edit-tracker.core
-  (:require [wikipedia-edit-tracker.handler.irc-data :as irc-data]))
+  (:require [wikipedia-edit-tracker.handler.irc-data :as irc-data]
+            [wikipedia-edit-tracker.producer.irc :as irc]
+            [clojure.core.async :as a]))
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
+(defn file-writer [channel filename]
+  (a/go (with-open [writer (clojure.java.io/writer filename :append true)]
+          (a/<! (a/go-loop []
+                  (when-let [msg (a/<! channel)]
+                    (.write writer (pr-str msg))
+                    (recur)))))))
 
 (defn -main [& args]
-  (println (into [] (irc-data/tx-process-irc-data) [{:command "PRIVMSG"
-                                             :params ["#en.wikipedia" "14[[07List of intelligence gathering disciplines14]]4 10 02https://en.wikipedia.org/w/index.php?diff=715127585&oldid=705758737 5* 03Dainomite 5* (+24) 10/* See also */"]
-                                             :raw ":rc-pmtpa!~rc-pmtpa@special.user PRIVMSG #en.wikipedia :14[[07List of intelligence gathering disciplines14]]4 10 02https://en.wikipedia.org/w/index.php?diff=715127585&oldid=705758737 5* 03Dainomite 5* (+24) 10/* See also */",
-                                             :nick "rc-pmtpa",
-                                             :user "~rc-pmtpa",
-                                             :host "special.user",
-                                             :target "#en.wikipedia",
-                                             :text "14[[07List of intelligence gathering disciplines14]]4 10 02https://en.wikipedia.org/w/index.php?diff=715127585&oldid=705758737 5* 03Dainomite 5* (+24) 10/* See also */"}])))
+  (let [{:keys [shutdown publish]} (irc/irc-supervisor "irc.wikimedia.org" 6667 "goose" "#en.wikipedia")
+        to-file> (a/chan 1024)
+        _ (a/pipeline 8 to-file> (irc-data/tx-process-irc-data) publish)
+        write-producer (file-writer to-file> "edits.txt")]
+    (a/<!! write-producer)))

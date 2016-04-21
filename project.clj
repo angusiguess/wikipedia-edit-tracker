@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.2.374"]
                  [clj-socketio "0.2.0"]
-                 [irclj "0.5.0-alpha4"]])
+                 [irclj "0.5.0-alpha4"]]
+  :main wikipedia-edit-tracker.core)

@@ -37,6 +37,10 @@
         rest
         vec)))
 
+(defn log-result [x]
+  (println x)
+  x)
+
 (defn tx-process-irc-data []
   (let [get-keys (map #(select-keys % [:command :nick :target :text]))
         filter-nick (filter #(= (:nick %) "rc-pmtpa"))
@@ -48,8 +52,9 @@
                                        [topic edit-url comment] text]
                                    (assoc event :topic topic
                                           :edit-url edit-url
-                                          :comment comment))))]
-    (comp get-keys filter-nick strip-colours parse-text add-parsed-values)))
+                                          :comment comment))))
+        log-result (map log-result)]
+    (comp get-keys filter-nick strip-colours parse-text add-parsed-values log-result)))
 
 
 (comment (into [] (tx-process-irc-data) [{:command "PRIVMSG"

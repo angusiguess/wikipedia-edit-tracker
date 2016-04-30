@@ -15,4 +15,6 @@
         to-file> (a/chan 1024)
         _ (a/pipeline 8 to-file> (irc-data/tx-process-irc-data) publish)
         write-producer (file-writer to-file> "edits.txt")]
+    (a/go (a/<! (a/timeout (* 1000 60 60 5)))
+          (a/close! shutdown))
     (a/<!! write-producer)))
